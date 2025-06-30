@@ -6,6 +6,8 @@
 #include <fcntl.h> // open
 #include <unistd.h> // read, write
 #include <string.h>
+#include <errno.h> // errno
+#include "requests.h" // RequestType
 
 #define PORT 8080
 
@@ -27,7 +29,10 @@ int main(void) {
     int bind_rc = bind(socket_fd, (struct sockaddr *)&socket_address, sizeof(socket_address));
 
 	if (bind_rc < 0) {
-		puts("Error binding socket to address");
+		printf("Error binding socket to address: %d\n", errno);
+		if (errno == EADDRINUSE) {
+			puts("addr in use");
+		}
 		return 1;
 	}
 
@@ -70,11 +75,38 @@ int main(void) {
 			return 1;
 		}
 
-		(void) write(client_fd, response, response_size);
+		int child_pid = fork();
+
+		if (child_pid == 0) {
+			char read_buf[0x1001];
+			int request_len = read(client_fd, read_buf, 0x1000);
+
+			if (request_len > 0) {
+				printf("--- REQUEST ---\n%s\n", read_buf);
+			}
+
+			enum RequestType req_type = parse_request((const char *)response);
+			if (req_type == REQ_GET) {
+				(void) write(client_fd, response, response_size);
+			} else {
+				(void) write(client_fd, "wtf", 4);
+			}
+
+			close(socket_fd);
+			close(client_fd);
+			exit(0);
+		} else if (child_pid < 0) {
+			puts("Error creating child process to handle request");
+			return 1;
+		}
 
 		close(client_fd);
+
 	}
 
+	close(socket_fd);
+	
+	free(response);
 	return 0;
 }
 
