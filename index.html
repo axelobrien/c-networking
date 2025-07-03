@@ -2,10 +2,22 @@
 <html lang="en">
 <head>
 	<title> Hello, world! </title>
+	<style>
+		body {
+			background-color: #181818;
+			font-family: "arial";
+			color: white;
+			padding: 0;
+		}
+	</style>
 </head>
 
 <body>
 	<h1> CUSTOM C SERVER!!!!!!!! </h1>
+	<form onsubmit="event.preventDefault(); fetch('/', {method: 'POST', body: 'hey'})">
+		<input> </input>
+		<button type="submit"> Click me!!! </button>
+	</form>
 </body>
 </html>
 

@@ -1,3 +1,4 @@
+#include <stdio.h> // printf (REMOVE LATER!)
 #include <string.h> // strlen, strcmp
 #include <stdlib.h> // calloc, free
 #include "requests.h" // RequestType
@@ -24,6 +25,9 @@ static int strcmp_between(const char *str1, const char *str2, size_t start, size
 		memcpy(slice_2, str2, slice_size);
 	}
 
+	printf("%s\n", slice_1);
+	printf("%s\n", slice_2);
+
 	int comparison = strcmp(slice_1, slice_2);
 
 	free(slice_1);
@@ -37,7 +41,7 @@ static int strcmp_between(const char *str1, const char *str2, size_t start, size
  * req is the raw request as a string, must not be NULL
  */
 enum RequestType parse_request(const char *req) {
-	int len = strlen(req) + 1;
+	size_t len = strlen(req) + 1;
 
 	if (len < 6) {
 		return REQ_INVALID;
@@ -46,4 +50,6 @@ enum RequestType parse_request(const char *req) {
 	if (strcmp_between(req, "GET /", 0, 5) == 0) {
 		return REQ_GET;
 	}
+
+	return REQ_INVALID;
 }

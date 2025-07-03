@@ -15,11 +15,11 @@ int main(void) {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	
 	if (socket_fd < 0) {
-		puts("Error creating socket");
-		return 1;
+		(void) puts("Error creating socket");
+		return EXIT_FAILURE;
 	}
 
-	struct sockaddr_in socket_address = {};
+	struct sockaddr_in socket_address = {0};
 	socklen_t addrlen = sizeof(socket_address);
 
 	socket_address.sin_family = AF_INET;
@@ -27,28 +27,28 @@ int main(void) {
 	socket_address.sin_addr.s_addr = INADDR_ANY;
 
 	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
-		puts("error setting socket options");
-		return 1;
+		(void) puts("error setting socket options");
+		return EXIT_FAILURE;
 	}
 
 	if (bind(socket_fd, (struct sockaddr *)&socket_address, sizeof(socket_address)) < 0) {
 		printf("Error binding socket to address: %d\n", errno);
 		if (errno == EADDRINUSE) {
-			puts("addr in use");
+			(void) puts("addr in use");
 		}
-		return 1;
+		return EXIT_FAILURE;
 	}
 
 	if (listen(socket_fd, 1) < 0) {
-		puts("Error listening on socket");
-		return 1;
+		(void) puts("Error listening on socket");
+		return EXIT_FAILURE;
 	}
 	
 	int page_fd = open("index.html", O_RDONLY);
 
 	if (page_fd < 0) {
-		puts("Error opening html");
-		return 1;
+		(void) puts("Error opening html");
+		return EXIT_FAILURE;
 	}
 
 	char buf[0x1000];
@@ -56,58 +56,63 @@ int main(void) {
 	ssize_t bytes_read = read(page_fd, buf, 0x1000);
 
 	if (bytes_read < 0) {
-		puts("Error reading html");
-		return 1;
+		(void) puts("Error reading html");
+		return EXIT_FAILURE;
 	}
 
 	char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n";
 	int header_size = snprintf(NULL, 0, header, bytes_read);
-	int response_size = header_size + bytes_read + 1;
+
+	if (header_size < 0) {
+		(void) puts("error getting size of header");
+		return EXIT_FAILURE;
+	}
+
+	size_t response_size = (size_t)header_size + (size_t)bytes_read + 1;
 	char *response = malloc(response_size);
 
-	snprintf(response, header_size + 1, header, bytes_read);
-	memcpy(response + header_size, buf, bytes_read);
+	snprintf(response, (size_t)header_size + 1, header, (size_t)bytes_read);
+	memcpy(response + header_size, buf, (size_t)bytes_read);
 
 	while (1) {
 		int client_fd = accept(socket_fd, (struct sockaddr *)&socket_address, &addrlen);
 
 		if (client_fd < 0) {
-			puts("Error accepting client");
-			return 1;
+			(void) puts("Error accepting client");
+			return EXIT_FAILURE;
 		}
 
 		int child_pid = fork();
 
 		if (child_pid == 0) {
 			char read_buf[0x1001];
-			int request_len = read(client_fd, read_buf, 0x1000);
+			ssize_t request_len = read(client_fd, read_buf, 0x1000);
 
 			if (request_len > 0) {
-				printf("--- REQUEST ---\n%s\n", read_buf);
+				(void) printf("--- REQUEST ---\n%s\n", read_buf);
 			}
 
-			enum RequestType req_type = parse_request((const char *)response);
+			enum RequestType req_type = parse_request((const char *)read_buf);
 			if (req_type == REQ_GET) {
 				(void) write(client_fd, response, response_size);
 			} else {
-				(void) write(client_fd, "wtf", 4);
+				(void) write(client_fd, "wtf", 3);
 			}
 
-			close(socket_fd);
-			close(client_fd);
-			exit(0);
+			(void) close(socket_fd);
+			(void) close(client_fd);
+			(void) exit(0);
 		} else if (child_pid < 0) {
-			puts("Error creating child process to handle request");
-			return 1;
+			(void) puts("Error creating child process to handle request");
+			return EXIT_FAILURE;
 		}
 
-		close(client_fd);
-
+		(void) close(client_fd);
 	}
 
-	close(socket_fd);
+	(void) close(socket_fd);
 	
-	free(response);
+	(void) free(response);
 	return 0;
 }
 
