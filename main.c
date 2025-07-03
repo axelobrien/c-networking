@@ -26,9 +26,12 @@ int main(void) {
 	socket_address.sin_port = htons(PORT);
 	socket_address.sin_addr.s_addr = INADDR_ANY;
 
-    int bind_rc = bind(socket_fd, (struct sockaddr *)&socket_address, sizeof(socket_address));
+	if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+		puts("error setting socket options");
+		return 1;
+	}
 
-	if (bind_rc < 0) {
+	if (bind(socket_fd, (struct sockaddr *)&socket_address, sizeof(socket_address)) < 0) {
 		printf("Error binding socket to address: %d\n", errno);
 		if (errno == EADDRINUSE) {
 			puts("addr in use");
@@ -36,9 +39,7 @@ int main(void) {
 		return 1;
 	}
 
-	int listen_rc = listen(socket_fd, 1);
-
-	if (listen_rc < 0) {
+	if (listen(socket_fd, 1) < 0) {
 		puts("Error listening on socket");
 		return 1;
 	}
