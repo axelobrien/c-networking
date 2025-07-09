@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "requests.h"
+#include <stdio.h> // printf (REMOVE LATER!)
+#include <stdlib.h> // calloc, free
+#include <string.h> // memcpy
+#include "helpers.h" // strcmp_between
 
 int strcmp_between(const char *str1, const char *str2, size_t start, size_t end) {
 	if (start > end) {

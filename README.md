@@ -1,7 +1,7 @@
 # Getting Started
 Compile with the following command
 ```bash
-gcc -Wall -Wpedantic -std=iso9899:1999 -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wstrict-prototypes -Wmissing-prototypes -Wconversion main.c parse_request.c && ./a.out
+gcc -Wall -Wpedantic -std=iso9899:1999 -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wstrict-prototypes -Wmissing-prototypes -Wconversion main.c parse_request.c helpers.c && ./a.out
 ```
 
 # Coding Guidelines

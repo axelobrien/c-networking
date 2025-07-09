@@ -45,36 +45,6 @@ int main(void) {
 		return EXIT_FAILURE;
 	}
 	
-	int page_fd = open("index.html", O_RDONLY);
-
-	if (page_fd < 0) {
-		(void) puts("Error opening html");
-		return EXIT_FAILURE;
-	}
-
-	char buf[0x1000];
-
-	ssize_t bytes_read = read(page_fd, buf, 0x1000);
-
-	if (bytes_read < 0) {
-		(void) puts("Error reading html");
-		return EXIT_FAILURE;
-	}
-
-	char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n";
-	int header_size = snprintf(NULL, 0, header, bytes_read);
-
-	if (header_size < 0) {
-		(void) puts("error getting size of header");
-		return EXIT_FAILURE;
-	}
-
-	size_t response_size = (size_t)header_size + (size_t)bytes_read + 1;
-	char *response = malloc(response_size);
-
-	snprintf(response, (size_t)header_size + 1, header, (size_t)bytes_read);
-	memcpy(response + header_size, buf, (size_t)bytes_read);
-
 	while (1) {
 		int client_fd = accept(socket_fd, (struct sockaddr *)&socket_address, &addrlen);
 
@@ -107,7 +77,45 @@ int main(void) {
 
 			if (req_type.type == REQ_GET) {
 				printf("PATH: %s\n", req_type.path);
+
+				if (strcmp(req_type.path, "") == 0) {
+					memcpy(req_type.path, "index.html", 11);
+				}
+
+				int page_fd = open(req_type.path, O_RDONLY);
+
+				if (page_fd < 0) {
+					(void) puts("Error opening html");
+					(void) write(client_fd, "404", 3);
+					return EXIT_FAILURE;
+				}
+
+				char buf[0x1000];
+
+				ssize_t bytes_read = read(page_fd, buf, 0x1000);
+
+				if (bytes_read < 0) {
+					(void) puts("Error reading html");
+					return EXIT_FAILURE;
+				}
+
+				char *header = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: %d\r\n\r\n";
+				int header_size = snprintf(NULL, 0, header, bytes_read);
+
+				if (header_size < 0) {
+					(void) puts("error getting size of header");
+					return EXIT_FAILURE;
+				}
+
+				size_t response_size = (size_t)header_size + (size_t)bytes_read + 1;
+				char *response = malloc(response_size);
+
+				snprintf(response, (size_t)header_size + 1, header, (size_t)bytes_read);
+				memcpy(response + header_size, buf, (size_t)bytes_read);
+
+
 				(void) write(client_fd, response, response_size);
+				(void) free(response);
 			} else {
 				(void) write(client_fd, "wtf", 3);
 			}
@@ -124,8 +132,6 @@ int main(void) {
 	}
 
 	(void) close(socket_fd);
-	
-	(void) free(response);
 	return 0;
 }
 
