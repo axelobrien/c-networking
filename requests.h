@@ -3,4 +3,10 @@ enum RequestType {
 	REQ_GET
 };
 
-enum RequestType parse_request(const char* req);
+typedef struct {
+	enum RequestType type;
+	char *path;
+	size_t max_size;
+} Request;
+
+int parse_request(const char* req, Request * dst);

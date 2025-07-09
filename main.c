@@ -10,6 +10,7 @@
 #include "requests.h" // RequestType
 
 #define PORT 8080
+#define MAX_PATH 100
 
 int main(void) {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -92,8 +93,20 @@ int main(void) {
 				(void) printf("--- REQUEST ---\n%s\n", read_buf);
 			}
 
-			enum RequestType req_type = parse_request((const char *)read_buf);
-			if (req_type == REQ_GET) {
+			Request req_type = {0};
+			char path_buf[MAX_PATH];
+			req_type.path = path_buf;
+			req_type.max_size = MAX_PATH;
+
+			int parse_rc = parse_request((const char *)read_buf, &req_type);
+		
+			if (parse_rc != 0) {
+				printf("Error parsing request: %d\n", parse_rc);
+				return EXIT_FAILURE;
+			}
+
+			if (req_type.type == REQ_GET) {
+				printf("PATH: %s\n", req_type.path);
 				(void) write(client_fd, response, response_size);
 			} else {
 				(void) write(client_fd, "wtf", 3);

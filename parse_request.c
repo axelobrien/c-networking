@@ -1,55 +1,52 @@
 #include <stdio.h> // printf (REMOVE LATER!)
 #include <string.h> // strlen, strcmp
 #include <stdlib.h> // calloc, free
+#include <stdint.h> // uintptr_t
 #include "requests.h" // RequestType
+#include "helpers.h" // strcmp_between
 
-static int strcmp_between(const char *str1, const char *str2, size_t start, size_t end) {
-	if (start > end) {
-		size_t temp = start;
-		start = end;
-		end = temp;
-	} else if (start == end) {
-		end++;
-	}
-
-	size_t slice_size = end - start;
-
-	char *slice_1 = calloc(slice_size, 1);
-	char *slice_2 = calloc(slice_size, 1);
-
-	if (strlen(str1) >= start) {
-		memcpy(slice_1, str1, slice_size);
-	}
-
-	if (strlen(str2) >= start) {
-		memcpy(slice_2, str2, slice_size);
-	}
-
-	printf("%s\n", slice_1);
-	printf("%s\n", slice_2);
-
-	int comparison = strcmp(slice_1, slice_2);
-
-	free(slice_1);
-	free(slice_2);
-	return comparison;
+static void handle_invalid(Request *dst) {
+	dst->type = REQ_INVALID;
+	dst->path = NULL;
+	return;
 }
-
 
 /*
  * Determines what kind of request is passed in. 
  * req is the raw request as a string, must not be NULL
  */
-enum RequestType parse_request(const char *req) {
+int parse_request(const char *req, Request *dst) {
+	if (dst == NULL || dst->path == NULL) {
+		handle_invalid(dst);
+		return -1;
+	}
+
 	size_t len = strlen(req) + 1;
 
 	if (len < 6) {
-		return REQ_INVALID;
+		handle_invalid(dst);
+		return 1;
 	}
 
 	if (strcmp_between(req, "GET /", 0, 5) == 0) {
-		return REQ_GET;
+		char *nextNewline = strstr(req + 5, " HTTP/1.1\r\n");
+		if (nextNewline == NULL) {
+			handle_invalid(dst);
+			return 2;
+		}
+		
+		uintptr_t pathLength = (uintptr_t)nextNewline - (uintptr_t)(req + 5);
+		if (pathLength >= dst->max_size) {
+			handle_invalid(dst);
+			return 3;
+		}
+
+		(void) memcpy(dst->path, req + 5, pathLength);
+		dst->path[pathLength] = 0;
+		dst->type = REQ_GET;
+		return 0;
 	}
 
-	return REQ_INVALID;
+	handle_invalid(dst);
+	return 4;
 }
