@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 enum RequestType {
 	REQ_INVALID,
 	REQ_GET
@@ -10,3 +12,5 @@ typedef struct {
 } Request;
 
 int parse_request(const char* req, Request * dst);
+
+int validate_path(Request *req);

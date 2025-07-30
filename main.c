@@ -14,7 +14,7 @@
 
 int main(void) {
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	
+
 	if (socket_fd < 0) {
 		(void) puts("Error creating socket");
 		return EXIT_FAILURE;
@@ -44,7 +44,7 @@ int main(void) {
 		(void) puts("Error listening on socket");
 		return EXIT_FAILURE;
 	}
-	
+
 	while (1) {
 		int client_fd = accept(socket_fd, (struct sockaddr *)&socket_address, &addrlen);
 
@@ -66,7 +66,8 @@ int main(void) {
 			Request req_type = {0};
 			char path_buf[MAX_PATH];
 			req_type.path = path_buf;
-			req_type.max_size = MAX_PATH;
+			memcpy(req_type.path, "./public/", strlen("./public/"));
+			req_type.max_size = MAX_PATH - strlen("./public/");
 
 			int parse_rc = parse_request((const char *)read_buf, &req_type);
 		
@@ -78,14 +79,19 @@ int main(void) {
 			if (req_type.type == REQ_GET) {
 				printf("PATH: %s\n", req_type.path);
 
-				if (strcmp(req_type.path, "") == 0) {
-					memcpy(req_type.path, "index.html", 11);
+				if (strcmp(req_type.path + 9, "") == 0) {
+					strcat(req_type.path, "index.html");
+				}
+
+				if (validate_path(&req_type) != 0) {
+					write(client_fd, "404", 3);
+					return EXIT_FAILURE;
 				}
 
 				int page_fd = open(req_type.path, O_RDONLY);
 
 				if (page_fd < 0) {
-					(void) puts("Error opening html");
+					(void) puts("Error opening file");
 					(void) write(client_fd, "404", 3);
 					return EXIT_FAILURE;
 				}

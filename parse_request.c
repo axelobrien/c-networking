@@ -41,8 +41,11 @@ int parse_request(const char *req, Request *dst) {
 			return 3;
 		}
 
-		(void) memcpy(dst->path, req + 5, pathLength);
-		dst->path[pathLength] = 0;
+		size_t prefix_len = strlen(dst->path);
+
+		(void) memcpy(dst->path + prefix_len, req + 5, pathLength);
+		printf("ur mom %s\n", dst->path);
+		dst->path[pathLength + prefix_len] = 0;
 		dst->type = REQ_GET;
 		return 0;
 	}
@@ -50,3 +53,15 @@ int parse_request(const char *req, Request *dst) {
 	handle_invalid(dst);
 	return 4;
 }
+
+int validate_path(Request *req) {
+	char* current = req->path;
+	while (*current != 0) {
+		if (*current == '.' && current[1] == '.') {
+				return -1;
+		}
+		current++;
+	}
+	return 0;
+}
+
